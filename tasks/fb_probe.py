@@ -20,6 +20,7 @@ fb_probe.py — проба узла ПЕРЕД прогоном M7.
 """
 
 import argparse
+import hashlib
 import asyncio
 import json
 import statistics
@@ -101,7 +102,15 @@ async def main(a):
     def sink_fb(ev, t):
         fb_count[0] += 1
 
-    print(f"Проба {a.minutes} мин. Фильтр: {json.dumps(flt) or '(без фильтра)'}\n")
+    # Адреса в вывод НЕ печатаются: лог уезжает в публичный репозиторий, а
+    # «какие оракулы мы слушаем» — это выбор рынков, то есть содержание
+    # стратегии. Печатается только счёт и короткий отпечаток, по которому
+    # два прогона можно сверить на «тот же фильтр или нет».
+    fp = hashlib.sha256(json.dumps(flt, sort_keys=True).encode()).hexdigest()[:8]
+    print(f"Проба {a.minutes} мин. "
+          f"Адресов в фильтре: {len(a.address)}; "
+          f"топик задан: {'да' if a.topic0 else 'нет'}; "
+          f"отпечаток фильтра: {fp}\n")
 
     await asyncio.gather(
         stream(a.url, ["pendingLogs", flt] if flt else ["pendingLogs"],
